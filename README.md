@@ -44,7 +44,7 @@ It is not a mockup. A small Node server **probes each live service server-side**
 | **glass** | The shared **design system** | 🟢 teal | [abheet19.github.io/glass](https://abheet19.github.io/glass/) | probed · **foundation** |
 | **HealthFlow** | Clinical workflow (web + API) | 🟢 green | [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev) | probes **both** web & API |
 | **Textify** | Document RAG + summariser | 🟠 amber | [textify-abheet19.fly.dev](https://textify-abheet19.fly.dev) | probed (`/health`) |
-| **ShieldAI** | Privacy-preserving ML | 🔵 blue | [shieldai-abheet19.fly.dev](https://shieldai-abheet19.fly.dev) | probed |
+| **ShieldAI** | Privacy-preserving Paillier scoring demo | 🔵 blue | [shieldai-abheet19.fly.dev](https://shieldai-abheet19.fly.dev) | probed |
 
 `glass` is the visual foundation every project (Helm included) is built on; **MCP** is the connective tissue Zeno and Helm drive the products through. That is the ecosystem — not seven islands.
 

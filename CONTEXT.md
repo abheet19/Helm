@@ -78,7 +78,7 @@ Agent    ──GET /mcp/manifest.json──▶  mcp.js  ──▶  4 read-only t
 | `glass` | glass | The shared **design-system foundation** every project is built on | `GET /` (Pages) | GitHub Pages |
 | `healthflow` | HealthFlow | Clinical-workflow app, **web + separate API tier** | `GET /` **and** API `GET /health` | fly.io (`healthflow-abheet19`) |
 | `textify` | Textify | Document RAG + summariser | `GET /health` | fly.io (`textify-abheet19`) |
-| `shieldai` | ShieldAI | Privacy-preserving ML demo | `GET /` | fly.io (`shieldai-abheet19`) |
+| `shieldai` | ShieldAI | Privacy-preserving Paillier scoring demo (not ML inference) | `GET /` | fly.io (`shieldai-abheet19`) |
 
 `glass` is the foundation (centre of the Service Map). `Vantage` exposes MCP; `Zeno` drives it over MCP. HealthFlow is the multi-probe case (only "up" when both tiers answer).
 
