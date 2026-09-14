@@ -185,17 +185,176 @@ function sparkline(spark, opts = {}) {
 
 function barChart(rows, opts = {}) {
   // rows: [{label, value, accent}], value in ms (or generic). Horizontal bars.
-  const max = Math.max(1, ...rows.map((r) => r.value || 0));
+  // opts.unit    — value suffix (e.g. ' ms', '%').
+  // opts.scale   — 'sqrt' compresses a heavy outlier (a cold-start p95) so the
+  //                normal-range services stay legible; the outlier still reads
+  //                as the longest bar. Noted honestly wherever it is used.
+  // opts.budget / opts.budgetLabel — a reference line drawn on every track at
+  //                that value's scaled position (same scale as the bars).
   const unit = opts.unit || '';
+  const values = rows.map((r) => r.value).filter((v) => v != null);
+  const max = Math.max(1, ...values);
+  const sqrtMode = opts.scale === 'sqrt';
+  const scaledPct = (v) => {
+    if (v == null) return 0;
+    const f = sqrtMode ? Math.sqrt(Math.max(0, v) / max) : (v / max);
+    return Math.max(0, Math.min(1, f)) * 100;
+  };
+  const marked = sqrtMode || opts.budget != null;
+  const budgetPct = opts.budget != null ? scaledPct(opts.budget) : null;
   return el('div', { class: 'stack-v' }, ...rows.map((r) => {
-    const pct = Math.round(((r.value || 0) / max) * 100);
+    const pct = scaledPct(r.value);
+    const track = el('div', { class: 'gauge' + (marked ? ' helm-track' : ''), style: 'flex:1' },
+      el('span', { class: 'gauge-fill', style: `width:${r.value == null ? 0 : pct.toFixed(1)}%;background:var(--proj)` }));
+    if (budgetPct != null && budgetPct > 0.5 && budgetPct < 99.5) {
+      track.appendChild(el('span', { class: 'helm-budget-tick', style: `left:${budgetPct.toFixed(1)}%`, title: opts.budgetLabel || 'budget' }));
+    }
     return el('div', { class: 'gauge-row', style: `--proj:${r.accent || 'var(--accent)'}` },
       el('span', { style: 'flex:0 0 6.5rem;color:var(--ink)', text: r.label }),
-      el('div', { class: 'gauge', style: 'flex:1' },
-        el('span', { class: 'gauge-fill', style: `width:${r.value == null ? 0 : pct}%;background:var(--proj)` })),
+      track,
       el('span', { class: 'gauge-value', style: 'flex:0 0 5rem;text-align:right', text: r.value == null ? '—' : `${Math.round(r.value)}${unit}` })
     );
   }));
+}
+
+/* Fleet latency-over-time — a prominent, multi-series line chart across every
+   probed service, drawn from REAL rolling probe history (each project's primary
+   endpoint spark: {t, ms, ok}). One hand-drawn inline SVG, no library. A √
+   (square-root) y-axis keeps every service legible even when one machine
+   cold-starts into multi-second latency. Returns SVG + a legend, or a
+   collecting-samples note before enough history exists. */
+function fleetLatencyChart() {
+  const series = state.fleet
+    .filter((p) => p.status !== 'local' && p.probes && p.probes[0] && Array.isArray(p.probes[0].spark))
+    .map((p) => ({
+      id: p.id, name: p.name, accent: p.accent, latest: p.latencyMs,
+      pts: p.probes[0].spark.map((s) => ({ t: s.t, ms: s.ms, ok: s.ok }))
+    }))
+    .filter((s) => s.pts.length);
+
+  const okPts = series.flatMap((s) => s.pts.filter((p) => p.ms != null));
+  if (okPts.length < 2) {
+    return `<div class="ts-empty">Collecting probe samples… the fleet latency trend appears after the first few 30-second sweeps.</div>`;
+  }
+
+  const allT = series.flatMap((s) => s.pts.map((p) => p.t));
+  let tMin = Math.min(...allT), tMax = Math.max(...allT);
+  if (tMax <= tMin) tMax = tMin + 1;
+  const vMax = Math.max(...okPts.map((p) => p.ms));
+  const axisMax = vMax * 1.06;
+
+  const W = 780, H = 300, padL = 48, padR = 14, padT = 14, padB = 30;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const baseY = padT + plotH;
+  const xFor = (t) => padL + ((t - tMin) / (tMax - tMin)) * plotW;
+  const yFor = (v) => padT + (1 - Math.sqrt(Math.max(0, v) / axisMax)) * plotH;
+
+  // Y gridlines at round ms values, positioned by the √ scale.
+  const GRID = [50, 100, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  let yticks = GRID.filter((v) => v <= vMax);
+  if (!yticks.length) yticks = [Math.round(vMax)];
+  let grid = '';
+  for (const v of yticks) {
+    const y = yFor(v);
+    grid += `<line class="ts-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"/>`;
+    grid += `<text class="ts-axis" x="${padL - 7}" y="${(y + 3).toFixed(1)}" text-anchor="end">${v >= 1000 ? (v / 1000) + 's' : v + 'ms'}</text>`;
+  }
+
+  // X ticks — minutes-ago, four across.
+  const now = state.generatedAt || Date.now();
+  let xaxis = '';
+  for (let i = 0; i <= 3; i++) {
+    const t = tMin + (i / 3) * (tMax - tMin);
+    const x = xFor(t);
+    const mins = Math.max(0, Math.round((now - t) / 60000));
+    const lbl = i === 3 ? 'now' : `−${mins}m`;
+    xaxis += `<text class="ts-axis" x="${x.toFixed(1)}" y="${H - padB + 16}" text-anchor="${i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}">${lbl}</text>`;
+  }
+
+  // One line per service (broken on down/null samples), a down tick at the
+  // baseline for failed probes, and a filled dot on the most recent sample.
+  let paths = '', downs = '', dots = '';
+  for (const s of series) {
+    let d = '', pen = false;
+    for (const p of s.pts) {
+      if (p.ms == null) {
+        pen = false;
+        if (p.ok === false) downs += `<circle cx="${xFor(p.t).toFixed(1)}" cy="${(baseY + 3).toFixed(1)}" r="1.7" fill="var(--bad)"/>`;
+        continue;
+      }
+      const x = xFor(p.t), y = yFor(p.ms);
+      d += (pen ? ' L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+      pen = true;
+    }
+    if (d) paths += `<path d="${d}" fill="none" stroke="${s.accent}" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="0.95"/>`;
+    const last = [...s.pts].reverse().find((p) => p.ms != null);
+    if (last) dots += `<circle cx="${xFor(last.t).toFixed(1)}" cy="${yFor(last.ms).toFixed(1)}" r="2.6" fill="${s.accent}" stroke="var(--surface)" stroke-width="1"/>`;
+  }
+
+  const svg = `<svg class="ts-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fleet latency over time — primary endpoint per project, square-root scale, from real probe history">
+    ${grid}
+    <line class="ts-axis-line" x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}"/>
+    ${paths}${downs}${dots}
+    ${xaxis}
+  </svg>`;
+  const legend = series
+    .map((s) => `<span class="lg"><span class="sw" style="background:${s.accent}"></span>${s.name} <b class="mono">${fmtMs(s.latest)}</b></span>`)
+    .join('');
+  return `${svg}<div class="chart-legend">${legend}</div>`;
+}
+
+/* Core Web Vitals threshold bars. Google's standard bands, per metric:
+   LCP good ≤2.5s / poor >4s · INP good ≤200ms / poor >500ms ·
+   CLS good ≤0.1 / poor >0.25 · error rate good ≤1% / poor >5%.
+   Values are deterministic SAMPLE placeholders (see sampleVitals) and labelled
+   as such — never presented as measured. */
+const VITALS = [
+  { key: 'lcp',     name: 'LCP', good: 2.5, needs: 4.0,  ceil: 5.0, unit: 's',  fmt: (v) => v.toFixed(2) + 's' },
+  { key: 'inp',     name: 'INP', good: 200, needs: 500,  ceil: 600, unit: 'ms', fmt: (v) => Math.round(v) + 'ms' },
+  { key: 'cls',     name: 'CLS', good: 0.1, needs: 0.25, ceil: 0.4, unit: '',   fmt: (v) => v.toFixed(3) },
+  { key: 'errRate', name: 'Error rate', good: 1.0, needs: 5.0, ceil: 8.0, unit: '%', fmt: (v) => v.toFixed(2) + '%' }
+];
+function vitalBand(v, m) { return v <= m.good ? 'good' : v <= m.needs ? 'needs' : 'poor'; }
+function vitalCell(v, m) {
+  const clamp = (x) => Math.max(0, Math.min(100, x));
+  const w = clamp((v / m.ceil) * 100);
+  const gPos = clamp((m.good / m.ceil) * 100);
+  const nPos = clamp((m.needs / m.ceil) * 100);
+  const band = vitalBand(v, m);
+  const bandText = band === 'good' ? 'good' : band === 'needs' ? 'needs improvement' : 'poor';
+  const zones = `linear-gradient(to right,`
+    + ` color-mix(in srgb, var(--ok) 16%, var(--surface)) 0 ${gPos.toFixed(1)}%,`
+    + ` color-mix(in srgb, var(--warn) 16%, var(--surface)) ${gPos.toFixed(1)}% ${nPos.toFixed(1)}%,`
+    + ` color-mix(in srgb, var(--bad) 16%, var(--surface)) ${nPos.toFixed(1)}% 100%)`;
+  return `<td data-numeric="true">
+    <div class="vcell">
+      <div class="vbar" style="background:${zones}" role="img" aria-label="${m.name} ${m.fmt(v)} — ${bandText}">
+        <span class="vbar-fill vb-${band}" style="width:${w.toFixed(1)}%"></span>
+        <span class="vbar-tick" style="left:${gPos.toFixed(1)}%"></span>
+        <span class="vbar-tick" style="left:${nPos.toFixed(1)}%"></span>
+      </div>
+      <span class="vnum" data-band="${band}">${m.fmt(v)}</span>
+    </div>
+  </td>`;
+}
+function vitalsChart() {
+  const projects = state.fleet.filter((p) => p.status !== 'local');
+  const legend = `<div class="vitals-legend">
+    <span class="lg"><span class="sw" style="background:var(--ok)"></span> Good</span>
+    <span class="lg"><span class="sw" style="background:var(--warn)"></span> Needs improvement</span>
+    <span class="lg"><span class="sw" style="background:var(--bad)"></span> Poor</span>
+    <span class="muted">— standard Web Vitals bands; each tinted track shows a metric's good / needs / poor zones and the fill lands in its band.</span>
+  </div>`;
+  const head = `<tr><th>Project</th>${VITALS
+    .map((m) => `<th data-numeric="true">${m.name} <em style="font-weight:400;color:var(--ink-2)">good ≤ ${m.good}${m.unit}</em></th>`)
+    .join('')}<th data-numeric="true">p95 <em style="font-weight:400;color:var(--ink-2)">(real)</em></th></tr>`;
+  const rows = projects.map((p) => {
+    const raw = sampleVitals(p.id);
+    const vals = { lcp: parseFloat(raw.lcp), inp: parseFloat(raw.inp), cls: parseFloat(raw.cls), errRate: parseFloat(raw.errRate) };
+    const cells = VITALS.map((m) => vitalCell(vals[m.key], m)).join('');
+    return `<tr><td><span class="mono">${p.name}</span></td>${cells}<td data-numeric="true"><span class="mono">${fmtMs(p.p95Ms)}</span></td></tr>`;
+  }).join('');
+  return `${legend}<div class="table-wrap"><table class="table table-striped vitals-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
 }
 
 /* ---------------------------------------------------------------------------
@@ -244,6 +403,18 @@ function viewOverview() {
     <div class="kpi"><div class="kpi-label">${icon('pulse')} Avg. uptime</div><div class="kpi-value">${avgUp == null ? '—' : avgUp}<small>%</small></div><div class="kpi-sub">rolling sampled window</div></div>
     <div class="kpi"><div class="kpi-label">${icon('layers')} Endpoints watched</div><div class="kpi-value">${endpoints}</div><div class="kpi-sub">across ${state.fleet.length} projects</div></div>
   ` }));
+
+  // Prominent fleet-wide latency time-series (real probe history).
+  const tsPanel = el('div', { class: 'panel', style: 'margin-bottom:var(--sp-5)' });
+  tsPanel.innerHTML = `
+    <div class="row-between" style="align-items:flex-start">
+      <div>
+        <h3 style="margin:0">${icon('pulse')} Fleet latency over time ${tagReal()}</h3>
+        <p class="panel-note" style="margin:6px 0 0;max-width:64ch">Live probe latency for each web service's primary endpoint, from Helm's rolling history. A √ (square-root) y-axis keeps every service legible even when one machine cold-starts into multi-second latency.</p>
+      </div>
+    </div>
+    <div class="ts-wrap">${fleetLatencyChart()}</div>`;
+  wrap.appendChild(tsPanel);
 
   const grid = el('div', { class: 'fleet-grid' });
   for (const p of state.fleet) grid.appendChild(projectCard(p));
@@ -303,8 +474,13 @@ function viewPerformance() {
   const perf = el('div', { class: 'grid-2' });
   const latRows = state.fleet.filter((p) => p.status !== 'local').map((p) => ({ label: p.name, value: p.p95Ms ?? p.latencyMs, accent: p.accent }));
   const latPanel = el('div', { class: 'panel' });
-  latPanel.innerHTML = `<h3>${icon('pulse')} p95 latency by project ${tagReal()}</h3><p class="panel-note">Computed from the rolling window of successful probes. Bars fill relative to the slowest service.</p>`;
-  latPanel.appendChild(barChart(latRows, { unit: ' ms' }));
+  const slowest = latRows.filter((r) => r.value != null).sort((a, b) => b.value - a.value)[0];
+  const budgetVisible = slowest && slowest.value > 2525; // the 2500 ms line only falls on-scale once a service runs this slow
+  const budgetNote = budgetVisible
+    ? ` The <span style="color:var(--warn);font-weight:600">amber line</span> marks the 2500 ms p95 budget.`
+    : ` A <span style="color:var(--warn);font-weight:600">2500 ms p95-budget line</span> appears once a service runs slow enough to approach it.`;
+  latPanel.innerHTML = `<h3>${icon('pulse')} p95 latency by project ${tagReal()}</h3><p class="panel-note">Computed from the rolling window of successful probes. Drawn on a <b>√ (square-root) scale</b> so one cold-start p95${slowest ? ` — currently ${slowest.label} at ${Math.round(slowest.value)} ms` : ''} doesn't squash the rest flat; that bar still reads as the longest.${budgetNote}</p>`;
+  latPanel.appendChild(barChart(latRows, { unit: ' ms', scale: 'sqrt', budget: 2500, budgetLabel: 'p95 budget · 2500 ms' }));
   perf.appendChild(latPanel);
 
   const upPanel = el('div', { class: 'panel' });
@@ -313,26 +489,11 @@ function viewPerformance() {
   perf.appendChild(upPanel);
   wrap.appendChild(perf);
 
-  // SAMPLE: web vitals table
+  // SAMPLE: web vitals as threshold bars (numbers kept, honestly labelled).
   const vpanel = el('div', { class: 'panel', style: 'margin-top:var(--sp-4)' });
   vpanel.innerHTML = `<h3>${icon('layers')} Core Web Vitals ${tagSample()}</h3>
-    <p class="panel-note">Placeholder values, stable per project. Wire real data from a Real-User-Monitoring beacon (e.g. the <code>web-vitals</code> library posting to <code>/api/vitals</code>) or a Lighthouse-CI job. Vantage already ships product analytics and would be the first real source.</p>`;
-  const table = el('div', { class: 'table-wrap' });
-  const rows = state.fleet.filter((p) => p.status !== 'local').map((p) => {
-    const v = sampleVitals(p.id);
-    return `<tr>
-      <td><span class="mono">${p.name}</span></td>
-      <td data-numeric="true">${v.lcp}s</td>
-      <td data-numeric="true">${v.inp}ms</td>
-      <td data-numeric="true">${v.cls}</td>
-      <td data-numeric="true">${v.errRate}%</td>
-      <td data-numeric="true">${fmtMs(p.p95Ms)}</td>
-    </tr>`;
-  }).join('');
-  table.innerHTML = `<table class="table table-striped"><thead><tr>
-    <th>Project</th><th data-numeric="true">LCP <em style="font-weight:400">(sample)</em></th><th data-numeric="true">INP <em style="font-weight:400">(sample)</em></th><th data-numeric="true">CLS <em style="font-weight:400">(sample)</em></th><th data-numeric="true">Error rate <em style="font-weight:400">(sample)</em></th><th data-numeric="true">p95 <em style="font-weight:400">(real)</em></th>
-    </tr></thead><tbody>${rows}</tbody></table>`;
-  vpanel.appendChild(table);
+    <p class="panel-note">Placeholder values, stable per project, shown against the standard Web Vitals thresholds so each metric reads at a glance. Wire real data from a Real-User-Monitoring beacon (e.g. the <code>web-vitals</code> library posting to <code>/api/vitals</code>) or a Lighthouse-CI job. Vantage already ships product analytics and would be the first real source. The p95 column is real.</p>`;
+  vpanel.appendChild(el('div', { html: vitalsChart() }));
   wrap.appendChild(vpanel);
   return wrap;
 }

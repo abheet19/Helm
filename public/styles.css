@@ -323,7 +323,44 @@ kbd {
 .chart { display: block; width: 100%; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-0); color: var(--ink-2); margin-top: var(--sp-2); }
 .chart-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
-.chart-legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+.chart-legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.chart-legend .lg b { color: var(--ink); }
+
+/* ---- Fleet latency time-series (Overview) ---------------------------------
+   A prominent multi-series latency-over-time chart, hand-drawn inline SVG (no
+   chart library, CSP-clean). A √ (square-root) y-axis so one cold-starting
+   machine can't squash every other service flat. Accent hexes are the allowed
+   graphic-channel exception (line strokes only, never text). */
+.ts-wrap { overflow-x: auto; }
+.ts-chart { display: block; width: 100%; min-width: 540px; height: auto; }
+.ts-grid { stroke: var(--line); stroke-width: 1; }
+.ts-axis-line { stroke: color-mix(in srgb, var(--ink) 24%, var(--line)); stroke-width: 1; }
+.ts-axis { fill: var(--ink-3); font-size: 10px; font-family: var(--font-mono); }
+.ts-empty { padding: var(--sp-6) var(--sp-4); text-align: center; color: var(--ink-3); font-size: var(--fs-0); }
+
+/* ---- p95 latency bars: budget reference line ------------------------------- */
+.helm-track { position: relative; height: 10px; }
+.helm-budget-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--warn); border-radius: 2px; transform: translateX(-1px); pointer-events: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--surface) 70%, transparent); }
+
+/* ---- Core Web Vitals threshold bars (Performance) -------------------------
+   Each SAMPLE metric reads as a chart: a tinted good / needs / poor track from
+   the standard Web Vitals bands, a fill coloured by the value's band, and tick
+   marks at the boundaries. The numbers are kept; the SAMPLE tag stays honest. */
+.vitals-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); align-items: center; margin-bottom: var(--sp-3); font-size: var(--fs-0); color: var(--ink-2); }
+.vitals-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.vitals-legend .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.vcell { display: flex; flex-direction: column; gap: 4px; min-width: 6rem; }
+.vbar { position: relative; height: 13px; border-radius: var(--r-pill); overflow: hidden; border: 1px solid var(--line); }
+.vbar-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: var(--r-pill); opacity: 0.9; }
+.vbar-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--ink) 40%, transparent); }
+.vb-good { background: var(--ok); }
+.vb-needs { background: var(--warn); }
+.vb-poor { background: var(--bad); }
+.vnum { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-0); font-weight: 600; color: var(--ink); }
+.vnum[data-band="good"] { color: var(--ok); }
+.vnum[data-band="needs"] { color: var(--warn); }
+.vnum[data-band="poor"] { color: var(--bad); }
+.vitals-table td { vertical-align: middle; }
 
 /* ---- Deploys timeline ------------------------------------------------------ */
 .timeline { position: relative; margin: 0; padding: 0 0 0 var(--sp-5); list-style: none; }
