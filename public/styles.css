@@ -386,6 +386,12 @@ kbd {
 .map-node-sub { fill: var(--ink-2); font-size: 9.5px; font-family: var(--font-ui); }
 .map-edge { stroke: var(--line); stroke-width: 1.5; fill: none; }
 .map-edge-mcp { stroke: var(--accent); stroke-width: 1.75; stroke-dasharray: 4 4; fill: none; }
+/* Nodes are controls (open the project's health detail): pointer + hover ring
+   + a visible keyboard focus ring, same affordances as the Overview cards. */
+.map-node { cursor: pointer; outline: none; }
+.map-node circle:nth-child(2) { transition: stroke-width var(--t-fast) var(--ease), filter var(--t-fast) var(--ease); }
+.map-node:hover circle:nth-child(2), .map-node:focus-visible circle:nth-child(2) { stroke-width: 3; filter: brightness(1.15); }
+.map-node:focus-visible circle:nth-child(1) { stroke: var(--focus); stroke-width: 3; }
 
 /* ---- Status page ----------------------------------------------------------- */
 .status-hero { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-6); border-radius: var(--r-2); border: 1px solid var(--line); background: var(--surface); margin-bottom: var(--sp-5); }

@@ -631,11 +631,15 @@ function viewMap() {
   const wrap = el('div', { class: 'view' });
   wrap.appendChild(el('div', { html: sectionHead(
     'Service & Stack Map',
-    'How the seven projects connect. glass is the shared design-system foundation every project is built on, and MCP is the interface Zeno and Helm use to drive them. Node rings show live status.',
+    'How the seven projects connect. glass is the shared design-system foundation every project is built on, and MCP is the interface Zeno and Helm use to drive them. Node rings show live status; click a node to open its health detail.',
     tagReal()
   ) }));
   const mapWrap = el('div', { class: 'map-wrap' });
   mapWrap.innerHTML = ecosystemSvg();
+  // Node clicks + keyboard (Enter / Space) open the project's health detail.
+  const openNode = (t) => { const n = t.closest('.map-node'); if (n) location.hash = '#/health/' + n.dataset.id; };
+  mapWrap.addEventListener('click', (e) => openNode(e.target));
+  mapWrap.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { const n = e.target.closest('.map-node'); if (n) { e.preventDefault(); openNode(n); } } });
   wrap.appendChild(mapWrap);
 
   const legend = el('div', { class: 'panel', style: 'margin-top:var(--sp-4)' });
@@ -677,9 +681,11 @@ function ecosystemSvg() {
     edges += `<path class="map-edge-mcp" d="M${pos['zeno'].x} ${pos['zeno'].y} Q ${cx} ${cy - 120} ${pos['vantage'].x} ${pos['vantage'].y}"/>`;
   }
 
+  // Each node is a real control: click / Enter / Space opens that project's
+  // health detail (same target as the Overview cards and the ⌘K palette).
   const node = (p, r = 30) => {
     const { x, y } = pos[p.id];
-    return `<g>
+    return `<g class="map-node" data-id="${p.id}" role="link" tabindex="0" aria-label="${p.name} — ${STATUS_LABEL[p.status] || p.status}. Open health detail">
       <circle cx="${x}" cy="${y}" r="${r + 4}" fill="none" stroke="${statusColor(p.status)}" stroke-width="2" opacity="0.9"/>
       <circle cx="${x}" cy="${y}" r="${r}" fill="color-mix(in srgb, ${p.accent} 22%, var(--surface))" stroke="${p.accent}" stroke-width="1.5"/>
       <text x="${x}" y="${y + 2}" text-anchor="middle" class="map-node-label">${p.name}</text>
@@ -776,7 +782,11 @@ function chatBubble(m) {
 function answer(q) {
   const ql = q.toLowerCase();
   const matched = state.fleet.find((p) => ql.includes(p.name.toLowerCase()) || ql.includes(p.id));
-  const wants = (kw) => kw.some((k) => ql.includes(k));
+  // Intent keywords are matched with the project's own name removed, so its
+  // letters can't satisfy an intent ("HealthFlow" contains "health", which
+  // would otherwise route "Latency of HealthFlow" to the status answer).
+  const qk = matched ? ql.split(matched.name.toLowerCase()).join(' ').split(matched.id).join(' ') : ql;
+  const wants = (kw) => kw.some((k) => qk.includes(k));
 
   if (wants(['what is helm', 'about helm', 'what does helm']) || (ql.includes('helm') && wants(['what', 'about']))) {
     return { role: 'bot', text: 'Helm is this app: a cross-project ops & observability command center over the 7-project ecosystem. It probes each live service server-side for real up/down and latency, tracks performance and deploys, and exposes read-only fleet tools over MCP. It is built on the glass design system.', src: 'registry' };
@@ -1068,6 +1078,10 @@ function onRoute() {
   const prev = state.route;
   parseRoute();
   updateChrome();
+  // A new section starts at its heading. Without this the page kept the previous
+  // section's scroll offset, landing mid-view under the sticky top bar. A project
+  // focus inside the same section (#/health/<id>) is handled by renderMain.
+  if (prev !== state.route) window.scrollTo(0, 0);
   renderMain(true);
 }
 
