@@ -159,3 +159,159 @@ No build step, no dependencies, tiny payload, zero CSP exceptions, and the chart
 ## 9. One-line summary
 
 Helm is an honest, real-probing ops and observability command center for a seven-project ecosystem — vanilla-JS SPA, Node/Express probe backend, hand-drawn SVG charts, a read-only MCP manifest, and dry-run deploy actions — where every metric is either measured or clearly labelled as a placeholder.
+
+---
+
+## Annotated core code + knowledge graph
+
+> Appended for the interview-assist AI: a structural map plus the 1-3 most important real code excerpts (verbatim from `server/`), each with line-by-line comments and an interviewer Q&A. Everything here quotes the actual source — real file, function and variable names, nothing invented.
+
+### Knowledge graph / structure summary
+
+Helm has exactly one source of live truth (`server/probe.js`) sitting behind a thin Express layer (`server/index.js`) that merges it with static facts (`server/fleet.js`). The client (`public/app.js`) only ever reads Helm's own JSON. The honesty invariant lives at the seam: `probe.js` produces **REAL** numbers; everything labelled **SAMPLE** is generated client-side by `seeded()` and never touches the probe engine.
+
+```mermaid
+flowchart TD
+    subgraph CLIENT["public/ — vanilla-JS SPA (no build step)"]
+        APP["app.js<br/>fetch /api/*, render 9 views, palette<br/>SAMPLE metrics via seeded()"]
+    end
+    subgraph SERVER["server/ — Node 20 + Express 4 (ESM)"]
+        IDX["index.js<br/>routes + static SPA + SPA fallback"]
+        FLEET["fleet.js<br/>FLEET registry + ECOSYSTEM graph<br/>(static facts, zero metrics)"]
+        PROBE["probe.js<br/>THE REAL-DATA ENGINE<br/>sweep · history Map · p50/p95 · rollup"]
+        MCP["mcp.js<br/>static read-only tool manifest"]
+    end
+    NET["Live fleet endpoints<br/>fly.io apps + GitHub Pages"]
+
+    APP -->|"GET /api/fleet, /api/health, /api/ecosystem, /api/config"| IDX
+    APP -->|"POST /api/action (dry run, performed:false)"| IDX
+    APP -->|"GET /mcp/manifest.json"| IDX
+    IDX -->|"summariseProject()"| PROBE
+    IDX -->|"registry lookup"| FLEET
+    IDX --> MCP
+    PROBE -->|"reads probe URLs from"| FLEET
+    PROBE ==>|"server-side fetch every 30s (no CORS)"| NET
+
+    classDef client fill:#4F8EF7,stroke:#1b3a66,color:#fff;
+    classDef server fill:#2ED3C6,stroke:#12665f,color:#062b28;
+    classDef engine fill:#C81E33,stroke:#5c0a14,color:#fff;
+    classDef static fill:#F2B23E,stroke:#7a560f,color:#2a1c02;
+    classDef ext fill:#3ECF8E,stroke:#155c3c,color:#04241a;
+    class APP client;
+    class IDX,MCP server;
+    class PROBE engine;
+    class FLEET static;
+    class NET ext;
+```
+
+**One line per file that matters:**
+
+- `server/probe.js` — the only live-data source: server-side `fetch` probes, per-probe rolling history (`Map<projectId, Map<probeName, sample[]>>`, capped at 60), and the `percentile`/`summariseProbe`/`summariseProject` math for uptime + p50/p95.
+- `server/fleet.js` — `FLEET`: the seven projects as hand-verified static metadata, each carrying its `probes[]` (the URLs `probe.js` hits) and SAMPLE `releases[]`; plus `FLEET_BY_ID` and the `ECOSYSTEM` edge graph.
+- `server/index.js` — Express wiring: serves the SPA, exposes `/api/fleet` (registry joined with the live rollup), `/api/health[/:id]`, `/api/ecosystem`, `/api/config`, `/mcp/manifest.json`, and the dry-run `/api/action`; calls `startProbing()` on listen.
+- `server/mcp.js` — `mcpManifest(origin)`: a static descriptor of four **read-only** tools that map 1:1 onto the real endpoints (action tools deliberately omitted).
+- `public/app.js` — the whole SPA; reads Helm's JSON, draws hand-rolled SVG charts, and is where every SAMPLE value is deterministically generated via `seeded()` and tagged in the UI.
+
+**Data/control flow in one sentence:** `startProbing()` → `sweep()` fans out one `probeOnce()` per URL in `FLEET` → each `{t, ok, ms, code, error}` sample is pushed into the rolling `history` map → a request to `/api/fleet` calls `summariseProject()`, which folds each probe's history into status/uptime/p50/p95 and rolls the probes up worst-case → the SPA polls that every 30 s.
+
+### Excerpt 1 — `probeOnce()`: one real measurement with a hard timeout (`server/probe.js`)
+
+This is the atom of everything real in Helm: a single wall-clock-timed `fetch` with an abort timeout, classified into up / erroring / down. Quoted verbatim from `server/probe.js` (lines 40-64).
+
+```js
+async function probeOnce(url, method = 'GET') {
+  const started = Date.now();                                    // start the wall clock BEFORE the request
+  const controller = new AbortController();                      // lets us cancel a request that hangs
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS); // 9s ceiling so a cold start is not "down"
+  try {
+    const res = await fetch(url, {
+      method,
+      redirect: 'follow',                                        // follow 3xx so a redirect is not miscounted
+      signal: controller.signal,                                 // wire the abort controller to this fetch
+      headers: { 'user-agent': 'Helm-fleet-probe/1.0 (+https://helm-abheet.fly.dev)' } // honest, identifiable UA
+    });
+    const ms = Date.now() - started;                             // measured latency = response time − start
+    return { t: Date.now(), ok: res.status < 400, ms, code: res.status, error: null }; // any 2xx/3xx = up
+  } catch (err) {
+    const ms = Date.now() - started;                             // still record how long we waited before failing
+    const aborted = err?.name === 'AbortError';                  // distinguish our timeout from a network error
+    return {
+      t: Date.now(),
+      ok: false,
+      ms,
+      code: 0,                                                   // 0 = no HTTP response at all (down)
+      error: aborted ? `timeout after ${TIMEOUT_MS}ms` : String(err?.cause?.code || err?.message || err)
+    };
+  }
+}
+```
+
+**Interviewer might ask — "Why an `AbortController` instead of `Promise.race` with a timeout?"** `fetch` has no built-in timeout, and a `Promise.race` would *resolve* the race but leave the real request hanging in the background (a socket leak, and it could still fire callbacks). `AbortController` actually cancels the underlying request. The 9 s value (`TIMEOUT_MS`) is deliberate: fly.io machines scale to zero and cold-start for several seconds, so a tight 1-2 s timeout would report a healthy-but-sleeping app as "down" — a false negative I explicitly designed against.
+
+**"Why is `code: 0` meaningful?"** It separates *reachable-but-erroring* (a real 4xx/5xx: `ok:false`, but latency is still valid) from *unreachable* (network error/timeout: `code:0`). Both are "down" for status, but only the former proves the host answered — useful when explaining an outage.
+
+### Excerpt 2 — `percentile()` + rolling p50/p95/uptime (`server/probe.js`)
+
+The math that turns raw samples into the honest headline numbers. Kept deliberately simple — nearest-rank percentile, no interpolation, no dependency. Verbatim from `server/probe.js` (lines 88-116, trimmed to the crux).
+
+```js
+function percentile(sortedMs, p) {
+  if (!sortedMs.length) return null;                             // no successful samples yet → null (UI shows "—")
+  const idx = Math.min(sortedMs.length - 1,                      // clamp so p95 of a tiny array cannot overflow
+                       Math.floor((p / 100) * sortedMs.length)); // nearest-rank index into the SORTED array
+  return sortedMs[idx];
+}
+
+function summariseProbe(projectId, probe) {
+  const series = seriesFor(projectId, probe.name);               // this probe's rolling history (≤ 60 samples)
+  const latest = series[series.length - 1] || null;             // newest sample drives current status
+  const okSamples = series.filter((s) => s.ok);                 // uptime & percentiles use ONLY healthy samples
+  const latencies = okSamples.map((s) => s.ms).sort((a, b) => a - b); // ascending, for nearest-rank percentile
+  const uptime = series.length                                  // uptime = healthy / total over the window
+    ? Math.round((okSamples.length / series.length) * 1000) / 10 // 1-decimal % (e.g. 99.4); null if never sampled
+    : null;
+  return {
+    name: probe.name, url: probe.url,
+    status: latest ? (latest.ok ? 'up' : 'down') : 'unknown',   // unknown until the first sample lands
+    code: latest?.code ?? null, latencyMs: latest?.ms ?? null,
+    samples: series.length, uptimePct: uptime,
+    p50Ms: percentile(latencies, 50), p95Ms: percentile(latencies, 95),
+    spark: series.map((s) => ({ t: s.t, ms: s.ok ? s.ms : null, ok: s.ok })) // null on failures = gap in the line
+  };
+}
+```
+
+**Interviewer might ask — "Why nearest-rank percentiles instead of interpolating?"** Over a rolling window of ≤ 60 samples, interpolation adds precision the data does not justify and makes the number harder to explain. Nearest-rank (`sortedMs[floor(p/100 * n)]`) is exactly "the value at the 95% position after sorting" — cheap, dependency-free, and honest about resolution. The `Math.min(length - 1, …)` clamp is the important edge case: it guarantees the index never runs past the end of the array for any p/length combination.
+
+**"Why compute p50/p95 from `okSamples` only?"** A failed probe's `ms` is time-until-failure, not service latency — mixing it in would poison the percentile. Uptime is the metric that counts failures (healthy ÷ total); latency percentiles measure only responses that actually returned. Splitting them keeps each number meaning one thing. **Complexity:** each summarise is O(n log n) for the sort over n ≤ 60 — trivially cheap, and it runs per request, not per sweep.
+
+### Excerpt 3 — `summariseProject()`: worst-case rollup (`server/probe.js`)
+
+How several probes (e.g. HealthFlow's `web` + `api` tiers) collapse into one honest project verdict. Verbatim from `server/probe.js` (lines 120-151, trimmed).
+
+```js
+export function summariseProject(project) {
+  if (!project.probes.length) {                                 // Zeno has no probes (local desktop app)
+    return { id: project.id,
+             status: project.deploy?.target === 'local' ? 'local' : 'unknown',
+             latencyMs: null, uptimePct: null, p95Ms: null, checkedAt: null, probes: [] };
+  }
+  const probes = project.probes.map((p) => summariseProbe(project.id, p));
+  const anyDown = probes.some((p) => p.status === 'down');      // one dead tier = project down
+  const allUp = probes.every((p) => p.status === 'up');        // "up" only if EVERY probe is up
+  const anyUnknown = probes.some((p) => p.status === 'unknown');
+  const status = anyUnknown && !anyDown ? 'unknown'             // still warming up, nothing failing
+               : anyDown ? 'down'                               // worst-case wins
+               : allUp ? 'up' : 'degraded';                     // mixed known-states = degraded
+  const lat = probes.map((p) => p.latencyMs).filter((n) => n != null);
+  const up  = probes.map((p) => p.uptimePct).filter((n) => n != null);
+  const p95 = probes.map((p) => p.p95Ms).filter((n) => n != null);
+  return { id: project.id, status,
+           latencyMs: lat.length ? Math.max(...lat) : null,     // report the WORST latency across tiers
+           uptimePct: up.length ? Math.min(...up) : null,       // report the LOWEST uptime
+           p95Ms: p95.length ? Math.max(...p95) : null,         // report the WORST tail
+           checkedAt: /* max sample time across probes */ null, probes };
+}
+```
+
+**Interviewer might ask — "Why worst-case (max latency / min uptime) instead of averaging the tiers?"** Because a project is only as healthy as its weakest dependency. If HealthFlow's web tier is fast but its API is down, averaging would show a misleadingly "half-healthy" project; taking the max latency / min uptime / any-down status tells the operator the truth — the user-facing experience is broken. It mirrors how real SLO rollups treat a multi-component service. The `local`/`unknown` branch keeps Zeno honest: it is a desktop app with no endpoint, so it is reported as `local`, never faked as "up".
