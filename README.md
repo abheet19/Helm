@@ -4,9 +4,9 @@
 
 # Helm
 
-### The fleet command center for a seven-project ecosystem
+### Operations visibility for the seven-product fleet in this eight-project portfolio
 
-Real health probes · web-vitals · deploys · alerts · an ecosystem map — one glass console over everything.
+Real health probes and latency history · clearly labelled RUM and deployment placeholders · one fleet map.
 
 <br/>
 
@@ -30,7 +30,7 @@ Real health probes · web-vitals · deploys · alerts · an ecosystem map — on
 
 ## What Helm is
 
-**Helm** is a cross-project **ops + observability command center** — a single glass console that watches, measures, and (would) operate a seven-project ecosystem. It is patterned on the ops boards you already know (Grafana / Datadog / Vercel / Amplitude / Sentry / BetterStack / Linear / Raycast): a left icon rail, a top status bar, sparkline-dense cards, and a `⌘K` command palette that reaches everything.
+**Helm** is the cross-project **ops and observability console** for the other seven products in this portfolio. Its Node server probes public endpoints and its glass interface turns those measurements into fleet health, latency history, alerts, and a service map. Operator actions and browser RUM are visible integration surfaces, but remain dry runs or labelled samples until credentials and telemetry are connected.
 
 It is not a mockup. A small Node server **probes each live service server-side** (no browser, so no CORS), measures real latency, and keeps a rolling window so uptime, p50/p95 and the sparklines are computed from **actual measurements**. Where a metric is not instrumented yet (Core Web Vitals, error rate, cost), Helm shows a **clearly-labelled SAMPLE** placeholder with a wiring note — never a fake number dressed up as real. That honesty rule is the whole point.
 
@@ -193,6 +193,6 @@ Health check hits `/health`; the app binds `PORT` (8080).
 
 <div align="center">
 
-Built on [**glass**](https://abheet19.github.io/glass/) · part of a seven-project ecosystem · steers the fleet.
+Built on [**glass**](https://abheet19.github.io/glass/) · the operations project in an eight-project portfolio.
 
 </div>
