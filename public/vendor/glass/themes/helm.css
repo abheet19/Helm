@@ -1,0 +1,29 @@
+/* =============================================================================
+   GLASS theme — helm · signal cyan + command blue
+   Helm — the fleet command center. Not one of the eight product themes; it is
+   the operator's console that watches all of them, so its accent is the
+   instrument-panel cyan of a targeting reticle rather than any one product's hue.
+
+   Mark palette (the origin of every number below):
+     #0A0E12 deep slate (ground) · #4FE3E8 signal cyan (accent) ·
+     #22B8C6 cyan mid · #4F8EF7 command blue (accent-2) · #E6F1F5 bone
+
+   Cyan sits at hue ~196 and command blue at ~248 — a wide, deliberate spread so
+   the reticle (cyan) and the interactive/link layer (blue) never blur together
+   on a dense ops board. Same law as every other theme: only these eight numbers
+   are ours; the lightness ladder, radii, type, motion and the four state hues
+   all come from src/tokens.css and cannot be touched from here.
+
+     hue    the instrument cyan / command blue, unchanged.
+     chroma capped at the most saturated value sRGB holds at the lightness the
+            contrast law assigns (two numbers per accent: the dark-ground L 78%
+            gamut and the light-ground L 50% gamut are different shapes).
+     L      NOT HERE. Lightness is what contrast is made of; it belongs to the
+            system. See tokens.css §1.3-1.4.
+   ============================================================================= */
+
+:root[data-glass="helm"] {
+  --h-ground: 220.0;   --c-ground: 0.0090;
+  --h-accent: 196.0;   --c-accent: 0.095;   --c-accent-lt: 0.110;
+  --h-accent-2: 248.0; --c-accent-2: 0.120; --c-accent-2-lt: 0.150;
+}

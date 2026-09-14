@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+.github
+*.log
+.env
+.env.*
+.fly
+docs/screenshots
+.vscode
+.idea
+README.md

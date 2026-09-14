@@ -1,0 +1,226 @@
+/* =============================================================================
+   GLASS — feedback.css
+   Toast, modal/dialog shell, tooltip, skeleton loader. Every declaration
+   reads from src/tokens.css; this file introduces no colour, no radius, no
+   duration and no font of its own — the same rule primitives.css obeys.
+
+   The three overlay components stack in the order tokens.css §1.12 declares:
+   dropdown (300) < tooltip (400) < toast (500) < modal (600) — a tooltip
+   never hides under an open menu, and a toast never hides under a tooltip,
+   but a modal always wins, because it is the one surface that suspends
+   everything behind it.
+
+   Requires src/tokens.css and src/primitives.css (toast/modal reuse .state
+   colour logic for their optional kind). Verified by: node scripts/contrast.mjs
+   ============================================================================= */
+
+/* =============================================================================
+   1. TOAST — a transient, opaque notification. Opaque like .state, for the
+   same reason: it must be readable over whatever is behind it, and glass has
+   no fixed luminance to measure against. role="status" (or "alert" for
+   -bad); the four .state colour tokens are reused via the same --st-*
+   channel names so a toast and a .state chip never drift apart.
+   ============================================================================= */
+
+.toast-region {
+  position: fixed;
+  z-index: var(--z-toast);
+  right: var(--sp-5);
+  bottom: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(22rem, calc(100vw - var(--sp-6)));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--st-key, var(--ink-2));
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 24px -12px oklch(0% 0 0 / .4);
+  animation: glass-toast-in var(--t-base) var(--ease);
+}
+
+@keyframes glass-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-icon {
+  flex: none;
+  color: var(--st-key, var(--ink-2));
+  font-family: var(--font-mono);
+  line-height: var(--lh-2);
+}
+
+.toast-body { flex: 1; min-width: 0; }
+
+.toast-title {
+  margin: 0;
+  font-size: var(--fs-1);
+  font-weight: 600;
+  line-height: var(--lh-1);
+}
+
+.toast-message {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-0);
+  line-height: var(--lh-2);
+  color: var(--ink-2);
+}
+
+.toast-close {
+  flex: none;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: var(--r-1);
+}
+
+.toast-close:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.toast-close:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: calc(var(--focus-off) * -1); }
+
+.toast-ok   { --st-key: var(--ok); }
+.toast-warn { --st-key: var(--warn); }
+.toast-bad  { --st-key: var(--bad); }
+.toast-info { --st-key: var(--info); }
+
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* =============================================================================
+   2. MODAL / DIALOG SHELL — a glass panel over an opaque scrim. The scrim is
+   NOT glass (it must fully occlude what is behind it, which is the point of
+   a modal); the panel is glass, matching .menu and .glass. Pair with
+   <dialog> or a focus-trap implementation of your own — this file owns only
+   paint and layout, not behaviour.
+   ============================================================================= */
+
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  animation: glass-fade-in var(--t-base) var(--ease);
+}
+
+/* A consumer opens/closes this the same way every other overlay in this
+   package does — toggling the native `hidden` attribute (see .workspace-*
+   panels, .tabs' [role="tabpanel"]) — but `display: grid` above is author
+   CSS, which outranks the UA-stylesheet-only `[hidden] { display: none }`
+   regardless of selector specificity. Restated here so the native attribute
+   works without every consumer rediscovering that gap. */
+.modal-scrim[hidden] { display: none; }
+
+@keyframes glass-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  width: min(32rem, 100%);
+  max-height: min(80vh, 100%);
+  overflow: auto;
+  padding: var(--sp-6);
+  background: var(--gl-fill);
+  -webkit-backdrop-filter: var(--gl-blur);
+  backdrop-filter: var(--gl-blur);
+  border: 1px solid var(--gl-edge);
+  border-radius: var(--r-3);
+  box-shadow: var(--gl-shadow);
+  color: var(--ink);
+}
+
+.modal-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  line-height: var(--lh-1);
+  letter-spacing: -0.01em;
+}
+
+.modal-body {
+  font-size: var(--fs-1);
+  line-height: var(--lh-3);
+  color: var(--ink-2);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+@media (prefers-reduced-motion: reduce) { .modal-scrim { animation: none; } }
+
+/* =============================================================================
+   3. TOOLTIP — a small opaque label, never glass (too small a plane for a
+   blur to read as anything but noise, and it must stay legible over any
+   background). role="tooltip"; position with an anchor or a library, same
+   convention as .menu.
+   ============================================================================= */
+
+.tooltip {
+  position: absolute;
+  z-index: var(--z-tooltip);
+  max-width: 16rem;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+  background: var(--on-accent);
+  color: var(--bg);
+  font-size: var(--fs-0);
+  line-height: var(--lh-2);
+  box-shadow: 0 4px 12px -4px oklch(0% 0 0 / .4);
+  pointer-events: none;
+}
+
+/* --on-accent/--bg is the inverse-ink pair tokens.css already carries for
+   text-on-accent; used here as a solid near-black-on-white (or the reverse,
+   light theme) chip because it is guaranteed high contrast on any surface
+   without a new token — the same trick .btn-primary's label uses. */
+
+/* =============================================================================
+   4. SKELETON LOADER — a loading placeholder, not a spinner (primitives.css
+   already made that call for .gauge; this is the same principle for
+   indeterminate *content*, where a shimmer says "something is coming" without
+   claiming a percentage it does not have).
+   ============================================================================= */
+
+.skeleton {
+  display: block;
+  border-radius: var(--r-1);
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    color-mix(in srgb, var(--line) 40%, var(--ink-3)) 37%,
+    var(--line) 63%
+  );
+  background-size: 400% 100%;
+  animation: glass-skeleton var(--t-slow) linear infinite;
+  animation-duration: 1.6s;
+}
+
+.skeleton-text { height: 0.9em; width: 100%; }
+.skeleton-title { height: 1.4em; width: 60%; }
+.skeleton-avatar { width: 40px; height: 40px; border-radius: var(--r-pill); }
+
+@keyframes glass-skeleton {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background: var(--line); }
+}

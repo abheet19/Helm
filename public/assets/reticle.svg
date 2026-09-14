@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="Helm reticle logo">
+  <rect width="96" height="96" rx="20" fill="#0A0E12"/>
+  <g fill="none" stroke="#4FE3E8" stroke-linecap="round">
+    <circle cx="48" cy="48" r="33" stroke-width="2" opacity="0.35"/>
+    <circle cx="48" cy="48" r="23" stroke-width="2.4"/>
+    <path d="M48 6v16M48 74v16M6 48h16M74 48h16" stroke-width="2.4"/>
+  </g>
+  <circle cx="48" cy="48" r="5.5" fill="#4FE3E8"/>
+</svg>

@@ -1,0 +1,167 @@
+/* =============================================================================
+   GLASS — data.css
+   Table, badge, avatar. Every declaration reads from src/tokens.css; this
+   file introduces no colour, no radius, no duration and no font of its own —
+   the same rule primitives.css obeys.
+
+   PROGRESS BAR: primitives.css already has one — .gauge / .gauge-fill — a
+   determinate bar with --ok/--warn/--bad variants (§7 there). It is not
+   duplicated here; use it for progress, same as a quantity.
+
+   Requires src/tokens.css and src/primitives.css (.badge reuses .chip's
+   sizing; .avatar's initials reuse .on-accent). Verified by:
+   node scripts/contrast.mjs
+   ============================================================================= */
+
+/* =============================================================================
+   1. TABLE — dense, opaque, striped. Row striping is --surface/--raised, the
+   same two planes .card and .card-raised already use — not a new colour, a
+   new *pattern* built from two tokens already cleared for text at 4.5:1.
+   ============================================================================= */
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-0);
+  line-height: var(--lh-2);
+  color: var(--ink);
+}
+
+.table caption {
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  color: var(--ink-2);
+  font-size: var(--fs-0);
+}
+
+.table th,
+.table td {
+  padding: var(--sp-2) var(--sp-4);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: var(--fs-0);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+
+.table tbody tr {
+  background: var(--bg);
+  transition: background var(--t-fast) var(--ease);
+}
+
+.table-striped tbody tr:nth-child(even) { background: var(--surface); }
+
+.table tbody tr:hover { background: var(--raised); }
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table td[data-numeric="true"],
+.table th[data-numeric="true"] {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-empty {
+  padding: var(--sp-7) var(--sp-4);
+  text-align: center;
+  color: var(--ink-2);
+}
+
+/* =============================================================================
+   2. BADGE — a count or a short label on a surface, sized like .chip but
+   square-cornered and built for a number. Neutral by default; the four state
+   variants reuse the exact --st-fill/--st-key formula .state defines in
+   primitives.css §6, so a badge and a state chip are never two different
+   colour laws for the same four meanings.
+   ============================================================================= */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4em;
+  padding: 1px var(--sp-1);
+  border-radius: var(--r-1);
+  background: color-mix(in srgb, var(--ink) 12%, var(--surface));
+  color: var(--ink);
+  font-size: var(--fs-0);
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-accent { background: var(--accent); color: var(--on-accent); }
+.badge-ok     { background: color-mix(in srgb, var(--ok) 22%, var(--surface));   color: var(--ink); }
+.badge-warn   { background: color-mix(in srgb, var(--warn) 22%, var(--surface)); color: var(--ink); }
+.badge-bad    { background: color-mix(in srgb, var(--bad) 22%, var(--surface));  color: var(--ink); }
+.badge-info   { background: color-mix(in srgb, var(--info) 22%, var(--surface)); color: var(--ink); }
+
+.badge-dot {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: var(--r-pill);
+}
+
+/* =============================================================================
+   3. AVATAR — a circle, an image or initials. Initials sit on --accent with
+   --on-accent text, the exact pair .btn-primary already clears; the fallback
+   (no image, no initials) is --surface with an --ink-2 glyph, matching
+   .chip's neutral fill so an empty avatar reads as "unknown", not "broken".
+   ============================================================================= */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-0);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+
+.avatar-sm { width: 24px; height: 24px; font-size: calc(var(--fs-0) * 0.85); }
+.avatar-lg { width: 48px; height: 48px; font-size: var(--fs-1); }
+
+.avatar-group {
+  display: flex;
+}
+
+.avatar-group .avatar {
+  border: 2px solid var(--bg);
+  margin-left: -8px;
+}
+
+.avatar-group .avatar:first-child { margin-left: 0; }

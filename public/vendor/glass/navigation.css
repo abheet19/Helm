@@ -1,0 +1,164 @@
+/* =============================================================================
+   GLASS — navigation.css
+   Tabs, breadcrumbs, a menu/dropdown. Every declaration reads from
+   src/tokens.css; this file introduces no colour, no radius, no duration and
+   no font of its own — the same rule primitives.css obeys.
+
+   Requires src/tokens.css and src/primitives.css (menu items reuse .btn-ghost
+   sizing conventions). Verified by: node scripts/contrast.mjs
+   ============================================================================= */
+
+/* =============================================================================
+   1. TABS — an underline rail, one active tab. role="tablist" on .tabs,
+   role="tab" + aria-selected on .tab; the underline is the graphic channel
+   (--accent, 3:1 already cleared) and aria-selected carries the state for
+   assistive tech, so nothing here depends on colour alone.
+   ============================================================================= */
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--target-min);
+  padding: var(--sp-2) var(--sp-1);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-1);
+  font-weight: 550;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: var(--focus-off);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.tab:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* =============================================================================
+   2. BREADCRUMBS — a trail. The separator is a glyph, not a border, so it
+   reads correctly in a screen reader's linear pass over the list.
+   ============================================================================= */
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-0);
+  color: var(--ink-2);
+}
+
+.breadcrumbs li { display: flex; align-items: center; gap: var(--sp-1); }
+
+.breadcrumbs li:not(:last-child)::after {
+  content: "/";
+  color: var(--ink-3);
+}
+
+.breadcrumbs a {
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--r-1);
+}
+
+.breadcrumbs a:hover { color: var(--ink); text-decoration: underline; }
+
+.breadcrumbs a:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: var(--focus-off);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--ink);
+  font-weight: 550;
+}
+
+/* =============================================================================
+   3. MENU / DROPDOWN — a glass panel of actions, anchored under a trigger.
+   .menu is positioning-agnostic (position it with a popover, an anchor, or a
+   library); what it owns is the panel's material and the item states. Sits
+   above page content at --z-dropdown (tokens.css §1.12).
+   ============================================================================= */
+
+.menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  min-width: 12rem;
+  padding: var(--sp-2);
+  margin: 0;
+  list-style: none;
+  background: var(--gl-fill);
+  -webkit-backdrop-filter: var(--gl-blur);
+  backdrop-filter: var(--gl-blur);
+  border: 1px solid var(--gl-edge);
+  border-radius: var(--r-2);
+  box-shadow: var(--gl-shadow);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--r-1);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-1);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.menu-item:hover,
+.menu-item[data-active="true"] {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.menu-item:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: calc(var(--focus-off) * -1);
+}
+
+.menu-item[aria-disabled="true"] {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.menu-item-danger { color: var(--bad); }
+.menu-item-danger:hover { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+
+.menu-sep {
+  height: 1px;
+  margin: var(--sp-2) var(--sp-1);
+  background: var(--line);
+  border: none;
+}

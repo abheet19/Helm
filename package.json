@@ -1,0 +1,17 @@
+{
+  "name": "helm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Helm — a cross-project ops + observability command center for a 7-project ecosystem.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
