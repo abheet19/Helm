@@ -792,7 +792,7 @@ function answer(q) {
   const wants = (kw) => kw.some((k) => qk.includes(k));
 
   if (wants(['what is helm', 'about helm', 'what does helm']) || (ql.includes('helm') && wants(['what', 'about']))) {
-    return { role: 'bot', text: 'Helm is this app: a cross-project ops & observability command center over the 7-project ecosystem. It probes each live service server-side for real up/down and latency, tracks performance and deploys, and exposes read-only fleet tools over MCP. It is built on the glass design system.', src: 'registry' };
+    return { role: 'bot', text: 'Helm is this app: a cross-project ops & observability command center over the 7-project ecosystem. It probes each live service server-side for real up/down and latency. Deploy history and browser Web Vitals are clearly labelled SAMPLE, while deploy controls are dry-run previews that execute nothing. Helm also exposes read-only fleet tools over MCP and is built on the glass design system.', src: 'registry' };
   }
   if (wants(['how many', 'count']) && wants(['up', 'operational', 'online', 'down'])) {
     const post = fleetPosture();
