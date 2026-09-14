@@ -42,6 +42,7 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'helm',
+    release_sha: SOURCE_REVISION,
     sourceRevision: SOURCE_REVISION,
     revisionStatus: SOURCE_REVISION ? 'verified-build-input' : 'unknown',
     uptimeSec: Math.round(process.uptime()),

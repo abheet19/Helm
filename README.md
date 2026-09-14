@@ -165,10 +165,13 @@ The probe loop runs one sweep on boot and then every 30s; the sparklines and upt
 
 ```bash
 fly apps create helm-abheet
-fly deploy                # uses Dockerfile + fly.toml (app = helm-abheet, region = sin)
+fly deploy --build-arg SOURCE_REVISION=$(git rev-parse HEAD)
+# uses Dockerfile + fly.toml (app = helm-abheet, region = sin)
 ```
 
-Health check hits `/health`; the app binds `PORT` (8080).
+Health check hits `/health`; the app binds `PORT` (8080). The response includes
+the validated build commit as `release_sha` (and the descriptive alias
+`sourceRevision`), or `null` when the build argument was omitted.
 
 ---
 
@@ -176,7 +179,7 @@ Health check hits `/health`; the app binds `PORT` (8080).
 
 | Endpoint | Method | Returns |
 | --- | --- | --- |
-| `/health` | GET | Helm's own liveness |
+| `/health` | GET | Helm's own liveness + validated `release_sha` |
 | `/api/health` | GET | real probe results for the whole fleet |
 | `/api/health/:id` | GET | real probe results for one project |
 | `/api/fleet` | GET | registry + live status rollup |
