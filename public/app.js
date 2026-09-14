@@ -552,6 +552,7 @@ function viewDeploys() {
   for (const p of state.fleet) {
     const panel = el('div', { class: 'panel', style: `--proj:${p.accent}` });
     const isFly = p.deploy && p.deploy.target === 'fly';
+    const isPages = p.deploy && p.deploy.target === 'pages';
     const rel = (p.releases || []).map((r) => `<li data-kind="${r.kind}">
       <div class="tl-head"><span class="mono" style="color:var(--ink);font-weight:600">${r.version}</span> <span class="chip">${r.kind}</span> <span class="tl-when">${r.when}</span></div>
       <div class="tl-note">${r.note} <span class="tag tag-sample" style="margin-left:6px">sample</span></div>
@@ -560,12 +561,14 @@ function viewDeploys() {
       <div class="row-between"><h3 style="margin:0">${p.name}</h3><span class="chip chip-mono">${p.deploy ? (p.deploy.app || p.deploy.platform) : '—'}</span></div>
       <p class="panel-note">${p.deploy ? p.deploy.platform : ''}${p.deploy && p.deploy.region ? ' · ' + p.deploy.region : ''}${statusChipInline(p.status)}</p>
       <ul class="timeline">${rel || '<li>no releases recorded</li>'}</ul>
-      <div class="action-row">
-        <button class="btn" data-act="deploy" data-p="${p.id}">${icon('play')} Deploy</button>
-        <button class="btn" data-act="rollback" data-p="${p.id}">${icon('rewind')} Rollback</button>
-        <button class="btn" data-act="restart" data-p="${p.id}">${icon('restart')} Restart</button>
-        <button class="btn" data-act="logs" data-p="${p.id}">${icon('logs')} Logs</button>
-      </div>
+      ${isFly ? `<div class="action-row">
+          <button class="btn" data-act="deploy" data-p="${p.id}">${icon('play')} Deploy</button>
+          <button class="btn" data-act="rollback" data-p="${p.id}">${icon('rewind')} Rollback</button>
+          <button class="btn" data-act="restart" data-p="${p.id}">${icon('restart')} Restart</button>
+          <button class="btn" data-act="logs" data-p="${p.id}">${icon('logs')} Logs</button>
+        </div>` : isPages ? `<div class="action-row">
+          <button class="btn" data-act="deploy" data-p="${p.id}">${icon('play')} Preview Pages deploy</button>
+        </div>` : ''}
       ${!isFly ? `<p class="panel-note" style="margin-top:var(--sp-2)">${p.deploy && p.deploy.target === 'local' ? 'Local app — actions have no remote target.' : 'Pages project — redeploys via git push.'}</p>` : ''}
     `;
     grid.appendChild(panel);
@@ -695,7 +698,7 @@ function ecosystemSvg() {
   let nodes = node(center, 40);
   for (const p of others) nodes += node(p, 28);
 
-  return `<svg class="map-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ecosystem graph: glass at the centre, six products around it, MCP link from Zeno to Vantage">
+  return `<svg class="map-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="Ecosystem graph: glass at the centre, six products around it, MCP link from Zeno to Vantage">
     ${edges}
     <text x="${cx}" y="${cy + 58}" text-anchor="middle" class="map-node-sub">design-system foundation</text>
     ${nodes}
