@@ -83,7 +83,7 @@ export const FLEET = [
     name: 'glass',
     tagline: 'The shared design system',
     blurb:
-      'The framework-neutral CSS design system every other project is built on: semantic OKLCH tokens, eight product themes, and executable contrast/accessibility contracts. The visual foundation of the ecosystem — Helm itself runs on it. Published on GitHub Pages.',
+      'The framework-neutral CSS design system shared across the portfolio: semantic OKLCH tokens, eleven product themes, and executable contrast/accessibility contracts. Helm itself uses it. Published on GitHub Pages.',
     accent: '#45C7BE',
     glassTheme: 'health',
     stack: ['CSS', 'OKLCH', 'Tailwind adapter', 'GitHub Pages'],
