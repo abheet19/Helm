@@ -16,9 +16,12 @@ primary_region = "sin"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  # Stay warm: an ops dashboard must respond instantly and keep its in-memory probe
+  # history accumulating (a stopped machine cold-starts slow and resets history, which
+  # showed as empty skeleton cards on first load). Same posture as Vantage.
+  auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
   [[http_service.checks]]
