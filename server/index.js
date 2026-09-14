@@ -159,8 +159,12 @@ app.use(
   express.static(PUBLIC_DIR, {
     extensions: ['html'],
     setHeaders(res, filePath) {
+      // The SPA is a single unversioned app.js/styles.css, so a long max-age would
+      // hide a fresh deploy for up to an hour (charts, fixes, etc. would look stale).
+      // no-cache lets the browser revalidate against the ETag every load — it still
+      // gets a cheap 304 when nothing changed, but always picks up a new build.
       if (/\.(css|js|svg)$/.test(filePath)) {
-        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Cache-Control', 'no-cache');
       }
     }
   })
