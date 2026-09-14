@@ -393,7 +393,7 @@ function viewOverview() {
 
   wrap.appendChild(el('div', { html: sectionHead(
     'Fleet Overview',
-    'Real-time posture across the seven-project ecosystem. Up/down, latency and uptime are measured by Helm’s server-side probes; the sparkline is real latency history.',
+    'Real-time status across the seven-project ecosystem. Up/down, latency and uptime are measured by Helm’s server-side probes; the sparkline is real latency history.',
     tagReal()
   ) }));
 
@@ -626,7 +626,7 @@ function viewMap() {
   const wrap = el('div', { class: 'view' });
   wrap.appendChild(el('div', { html: sectionHead(
     'Service & Stack Map',
-    'The ecosystem is not seven islands. glass is the shared design-system foundation every project is built on; MCP is the connective tissue Zeno and Helm drive it through. Node rings show live status.',
+    'How the seven projects connect. glass is the shared design-system foundation every project is built on, and MCP is the interface Zeno and Helm use to drive them. Node rings show live status.',
     tagReal()
   ) }));
   const mapWrap = el('div', { class: 'map-wrap' });
