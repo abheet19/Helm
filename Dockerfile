@@ -20,6 +20,11 @@ COPY public ./public
 ARG BUILD_TS
 ENV BUILD_TS=${BUILD_TS}
 
+# Pass the exact source commit explicitly at build time. The server validates
+# that it is a 40-character Git SHA and reports unknown for any other value.
+ARG SOURCE_REVISION
+ENV SOURCE_REVISION=${SOURCE_REVISION}
+
 EXPOSE 8080
 ENV PORT=8080
 

@@ -24,6 +24,9 @@ import { mcpManifest } from './mcp.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PORT = process.env.PORT || 8080;
+const SOURCE_REVISION = /^[0-9a-f]{40}$/i.test(process.env.SOURCE_REVISION || '')
+  ? process.env.SOURCE_REVISION.toLowerCase()
+  : null;
 
 const app = express();
 app.disable('x-powered-by');
@@ -39,6 +42,8 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'helm',
+    sourceRevision: SOURCE_REVISION,
+    revisionStatus: SOURCE_REVISION ? 'verified-build-input' : 'unknown',
     uptimeSec: Math.round(process.uptime()),
     probing: hasData(),
     ts: new Date().toISOString()
@@ -151,7 +156,12 @@ app.post('/api/action', (req, res) => {
 
 // --- Runtime config for the SPA (probe cadence etc.). -----------------------
 app.get('/api/config', (_req, res) => {
-  res.json({ probe: PROBE_CONFIG, buildTs: process.env.BUILD_TS || null });
+  res.json({
+    probe: PROBE_CONFIG,
+    buildTs: process.env.BUILD_TS || null,
+    sourceRevision: SOURCE_REVISION,
+    revisionStatus: SOURCE_REVISION ? 'verified-build-input' : 'unknown'
+  });
 });
 
 // --- Static SPA. ------------------------------------------------------------
