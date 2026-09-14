@@ -53,7 +53,7 @@ export const FLEET = [
     mcp: { exposes: false, note: 'MCP planned where it fits' },
     probes: [{ name: 'app', url: 'https://weft-abheet.fly.dev/', method: 'GET' }],
     releases: [
-      { version: 'gate-3', when: '2026-09-14', kind: 'build', note: 'Gate 3 build in progress', sample: true },
+      { version: 'live', when: '2026-09-14', kind: 'deploy', note: 'Public release deployed and health-checked', sample: true },
       { version: 'gate-2', when: '2026-09-05', kind: 'deploy', note: 'Gates 1+2 approved', sample: true }
     ]
   },
@@ -74,7 +74,7 @@ export const FLEET = [
     mcp: { exposes: true, note: 'Reference MCP server: fleet-style metrics tools' },
     probes: [{ name: 'health', url: 'https://vantage-abheet.fly.dev/health', method: 'GET' }],
     releases: [
-      { version: 'gate-3', when: '2026-09-14', kind: 'build', note: 'Gate 3 build in progress', sample: true },
+      { version: 'live', when: '2026-09-14', kind: 'deploy', note: 'Public release deployed and health-checked', sample: true },
       { version: 'gate-2', when: '2026-09-05', kind: 'deploy', note: 'Gates 1+2 approved', sample: true }
     ]
   },
