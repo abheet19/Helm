@@ -362,6 +362,10 @@ function vitalsChart() {
    --------------------------------------------------------------------------- */
 function tagReal() { return `<span class="tag tag-real">Real</span>`; }
 function tagSample() { return `<span class="tag tag-sample">Sample</span>`; }
+// Compact data-source / freshness label for a metric group. Live = real probe
+// data with how long ago it was refreshed; Sample = labelled placeholder data.
+function freshLive() { return `<span class="tag tag-real" title="Measured from Helm’s server-side probes">Live probe · updated ${timeAgo(state.generatedAt)}</span>`; }
+function freshSample() { return `<span class="tag tag-sample" title="Labelled placeholder — not a real measurement">Sample</span>`; }
 function statusChip(s) {
   return `<span class="status" data-s="${s}"><span class="dot"></span>${STATUS_LABEL[s] || s}</span>`;
 }
@@ -397,8 +401,9 @@ function viewOverview() {
     tagReal()
   ) }));
 
+  wrap.appendChild(el('div', { class: 'metric-meta', html: `${freshLive()}<span class="metric-meta-note">Operational count, latency and uptime are read from Helm’s server-side probes.</span>` }));
   wrap.appendChild(el('div', { class: 'kpi-row', html: `
-    <div class="kpi"><div class="kpi-label">${icon('globe')} Services operational</div><div class="kpi-value">${post.up}<small> / ${post.total}</small></div><div class="kpi-sub">probed web endpoints · 1 local app (Zeno)</div></div>
+    <div class="kpi"><div class="kpi-label">${icon('globe')} Services operational</div><div class="kpi-value">${post.up}<small> / ${post.total}</small></div><div class="kpi-sub">${post.up}/${post.total} web endpoints up · Zeno local</div></div>
     <div class="kpi"><div class="kpi-label">${icon('clock')} Avg. latency</div><div class="kpi-value">${avgLat == null ? '—' : avgLat}<small> ms</small></div><div class="kpi-sub">mean of last live probe</div></div>
     <div class="kpi"><div class="kpi-label">${icon('pulse')} Avg. uptime</div><div class="kpi-value">${avgUp == null ? '—' : avgUp}<small>%</small></div><div class="kpi-sub">rolling sampled window</div></div>
     <div class="kpi"><div class="kpi-label">${icon('layers')} Endpoints watched</div><div class="kpi-value">${endpoints}</div><div class="kpi-sub">across ${state.fleet.length} projects</div></div>
@@ -479,19 +484,19 @@ function viewPerformance() {
   const budgetNote = budgetVisible
     ? ` The <span style="color:var(--warn);font-weight:600">amber line</span> marks the 2500 ms p95 budget.`
     : ` A <span style="color:var(--warn);font-weight:600">2500 ms p95-budget line</span> appears once a service runs slow enough to approach it.`;
-  latPanel.innerHTML = `<h3>${icon('pulse')} p95 latency by project ${tagReal()}</h3><p class="panel-note">Computed from the rolling window of successful probes. Drawn on a <b>√ (square-root) scale</b> so one cold-start p95${slowest ? ` — currently ${slowest.label} at ${Math.round(slowest.value)} ms` : ''} doesn't squash the rest flat; that bar still reads as the longest.${budgetNote}</p>`;
+  latPanel.innerHTML = `<h3>${icon('pulse')} p95 latency by project ${freshLive()}</h3><p class="panel-note">Computed from the rolling window of successful probes. Drawn on a <b>√ (square-root) scale</b> so one cold-start p95${slowest ? ` — currently ${slowest.label} at ${Math.round(slowest.value)} ms` : ''} doesn't squash the rest flat; that bar still reads as the longest.${budgetNote}</p>`;
   latPanel.appendChild(barChart(latRows, { unit: ' ms', scale: 'sqrt', budget: 2500, budgetLabel: 'p95 budget · 2500 ms' }));
   perf.appendChild(latPanel);
 
   const upPanel = el('div', { class: 'panel' });
-  upPanel.innerHTML = `<h3>${icon('check')} Uptime by project ${tagReal()}</h3><p class="panel-note">Share of probe samples that returned a healthy response since Helm started.</p>`;
+  upPanel.innerHTML = `<h3>${icon('check')} Uptime by project ${freshLive()}</h3><p class="panel-note">Share of probe samples that returned a healthy response since Helm started.</p>`;
   upPanel.appendChild(barChart(state.fleet.filter((p) => p.status !== 'local').map((p) => ({ label: p.name, value: p.uptimePct, accent: p.accent })), { unit: '%' }));
   perf.appendChild(upPanel);
   wrap.appendChild(perf);
 
   // SAMPLE: web vitals as threshold bars (numbers kept, honestly labelled).
   const vpanel = el('div', { class: 'panel', style: 'margin-top:var(--sp-4)' });
-  vpanel.innerHTML = `<h3>${icon('layers')} Core Web Vitals ${tagSample()}</h3>
+  vpanel.innerHTML = `<h3>${icon('layers')} Core Web Vitals ${freshSample()}</h3>
     <p class="panel-note">Placeholder values, stable per project, shown against the standard Web Vitals thresholds so each metric reads at a glance. Wire real data from a Real-User-Monitoring beacon (e.g. the <code>web-vitals</code> library posting to <code>/api/vitals</code>) or a Lighthouse-CI job. Vantage already ships product analytics and would be the first real source. The p95 column is real.</p>`;
   vpanel.appendChild(el('div', { html: vitalsChart() }));
   wrap.appendChild(vpanel);
@@ -703,7 +708,7 @@ function viewStatus() {
   ) }));
   wrap.appendChild(el('div', { class: 'status-hero', html: `
     <div class="ring" style="color:${ringColor}">${reticle(60)}</div>
-    <div><h2>${overall}</h2><p>${post.up} of ${post.total} web services responding · updated ${timeAgo(state.generatedAt)}</p></div>
+    <div><h2>${overall}</h2><p>${post.up}/${post.total} web endpoints up · Zeno local · updated ${timeAgo(state.generatedAt)}</p></div>
   ` }));
   const list = el('div', { class: 'status-list' });
   for (const p of state.fleet) {

@@ -145,13 +145,13 @@ export const FLEET = [
   {
     id: 'shieldai',
     name: 'ShieldAI',
-    tagline: 'Privacy-preserving ML',
+    tagline: 'Privacy-preserving evaluation',
     blurb:
-      'A privacy-preserving machine-learning demo: run inference without exposing the raw inputs. Deployed on fly.io (machine cold-starts on first hit).',
+      'Scores inputs under homomorphic encryption — the raw values never leave the browser unencrypted. Paillier-encrypted weighted-sum risk scoring, not ML inference. Deployed on fly.io (machine cold-starts on first hit).',
     accent: '#4F8EF7',
     glassTheme: 'shield',
-    stack: ['Python', 'PyTorch', 'FastAPI', 'glass'],
-    role: 'Product · privacy ML',
+    stack: ['Python', 'Flask', 'Vanilla JS', 'Paillier'],
+    role: 'Product · privacy evaluation',
     liveUrl: 'https://shieldai-abheet19.fly.dev',
     repoUrl: 'https://github.com/abheet19',
     deploy: { target: 'fly', platform: 'fly.io', region: 'sin', app: 'shieldai-abheet19' },
