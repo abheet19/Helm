@@ -148,6 +148,8 @@ Ten ops flows, all reachable from the rail and from `⌘K`:
 ```bash
 npm install
 npm start                 # http://localhost:8080
+npm run check             # syntax + read-only API/security contract test
+npm audit --audit-level=high
 ```
 
 Then:
@@ -160,6 +162,7 @@ curl localhost:8080/mcp/manifest.json   # read-only fleet tools
 ```
 
 The probe loop runs one sweep on boot and then every 30s; the sparklines and uptime fill in as history accrues.
+GitHub Actions repeats the clean install, high-severity dependency audit, syntax gate, and API/security contract test on pushes and pull requests.
 
 ## Deploy (fly.io)
 

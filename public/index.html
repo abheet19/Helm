@@ -23,15 +23,7 @@
   <link rel="stylesheet" href="/styles.css?v=2" />
 
   <!-- Apply the saved appearance before first paint (no flash). -->
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('helm.theme');
-        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-        if (localStorage.getItem('helm.flat') === '1') document.documentElement.setAttribute('data-flat', '1');
-      } catch (e) {}
-    })();
-  </script>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="glass-page glass-atmosphere">
   <div id="app" class="app-shell" aria-busy="true">

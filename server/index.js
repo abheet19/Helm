@@ -30,6 +30,19 @@ const SOURCE_REVISION = /^[0-9a-f]{40}$/i.test(process.env.SOURCE_REVISION || ''
 
 const app = express();
 app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'"
+  );
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  next();
+});
 app.use(express.json({ limit: '32kb' }));
 
 function originOf(req) {
@@ -188,7 +201,7 @@ app.get('*', (req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  startProbing();
+  if (process.env.HELM_DISABLE_PROBES !== '1') startProbing();
   // eslint-disable-next-line no-console
   console.log(`Helm listening on :${PORT}  (probing ${FLEET.reduce((n, p) => n + p.probes.length, 0)} endpoints every ${PROBE_CONFIG.REFRESH_MS / 1000}s)`);
 });

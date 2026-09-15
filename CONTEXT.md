@@ -64,6 +64,8 @@ Agent    ──GET /mcp/manifest.json──▶  mcp.js  ──▶  4 read-only t
 - **`public/app.js`** (~1100 lines) — the whole SPA. Sections: helpers (`el`, `store`, `seeded`), icons, formatting, charts (`sparkline`, `barChart`, `fleetLatencyChart`, `vitalsChart`), nine views (`viewOverview`…`viewSettings`), theming, dry-run actions + toasts, the `⌘K` palette, shell + hash router, data polling + boot.
 - **`public/index.html`** — loads the glass stylesheets then `app.js` as a module; applies saved theme before first paint; `<noscript>` points at the JSON APIs.
 - **`README.md`** — the public-facing writeup with Mermaid architecture diagrams.
+- **`tests/server.test.mjs`** — dependency-free Node integration test for release identity, security headers, fleet/MCP contracts, and the non-performing action boundary.
+- **`.github/workflows/ci.yml`** — clean install, dependency audit, syntax checks, and the server contract test on pushes and pull requests.
 - **`docs/CRASH_COURSE.md`** — the interview study guide (companion to this file).
 
 ---

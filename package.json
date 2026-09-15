@@ -9,9 +9,12 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "syntax": "node --check server/index.js && node --check server/fleet.js && node --check server/probe.js && node --check server/mcp.js && node --check public/app.js && node --check public/theme-init.js",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run syntax && npm test"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.22.3"
   }
 }

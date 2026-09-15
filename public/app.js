@@ -354,7 +354,7 @@ function vitalsChart() {
     const cells = VITALS.map((m) => vitalCell(vals[m.key], m)).join('');
     return `<tr><td><span class="mono">${p.name}</span></td>${cells}<td data-numeric="true"><span class="mono">${fmtMs(p.p95Ms)}</span></td></tr>`;
   }).join('');
-  return `${legend}<div class="table-wrap"><table class="table table-striped vitals-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+  return `${legend}<div class="table-wrap" tabindex="0" role="region" aria-label="Web Vitals comparison"><table class="table table-striped vitals-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
 }
 
 /* ---------------------------------------------------------------------------
@@ -531,7 +531,7 @@ function viewHealth() {
         <h3 style="margin:0">${statusChip(p.status)} &nbsp; ${p.name}</h3>
         <span class="muted" style="font-size:var(--fs-0)">last check ${timeAgo(p.checkedAt)} · uptime ${fmtPct(p.uptimePct)} · ${p.probes ? p.probes.reduce((n, x) => Math.max(n, x.samples || 0), 0) : 0} samples</span>
       </div>
-      <div class="table-wrap" style="margin-top:var(--sp-3)">
+      <div class="table-wrap" tabindex="0" role="region" aria-label="${p.name} endpoint health" style="margin-top:var(--sp-3)">
         <table class="table"><thead><tr><th>Endpoint</th><th>Status</th><th data-numeric="true">Code</th><th data-numeric="true">Latency</th><th>URL / error</th></tr></thead>
         <tbody>${probeRows}</tbody></table>
       </div>`;
@@ -654,7 +654,7 @@ function viewMap() {
       <span class="lg"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:var(--bad);display:inline-block"></span> down</span>
       <span class="lg"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:var(--info);display:inline-block"></span> local</span>
     </div>
-    <div class="table-wrap" style="margin-top:var(--sp-3)"><table class="table table-striped"><thead><tr><th>Project</th><th>Role</th><th>Built on glass</th><th>Exposes MCP</th></tr></thead><tbody>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Ecosystem project relationships" style="margin-top:var(--sp-3)"><table class="table table-striped"><thead><tr><th>Project</th><th>Role</th><th>Built on glass</th><th>Exposes MCP</th></tr></thead><tbody>
     ${state.fleet.map((p) => `<tr><td class="mono">${p.name}</td><td>${p.role}</td><td>${p.usesGlass ? icon('check') + ' yes' : '—'}</td><td>${p.mcp && p.mcp.exposes ? icon('check') + ' yes' : '<span class="muted">planned</span>'}</td></tr>`).join('')}
     </tbody></table></div>`;
   wrap.appendChild(legend);
