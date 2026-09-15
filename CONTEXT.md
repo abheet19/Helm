@@ -6,7 +6,7 @@
 
 ## 1. What Helm is (the problem it solves)
 
-Abheet built a **seven-project portfolio ecosystem** (Zeno, Weft, Vantage, glass, HealthFlow, Textify, ShieldAI). Once you have seven deployed things, the practical problem is: *are they all up right now, how fast are they, and how do they relate to each other?* Opening seven fly.io dashboards is not an answer.
+Abheet built a **seven-project portfolio ecosystem** (Zeno, Weft, Vantage, glass, HealthFlow, Textify, ShieldAI): six public web services plus the local-only Zeno desktop system. The practical problem is: *which public services are up right now, how fast are they, and how does the whole ecosystem relate?* Opening several hosting dashboards still leaves the local product and cross-project relationships out of view.
 
 **Helm is the ops and observability command center over all seven.** It is a single-page web console, patterned on tools like Grafana / Datadog / Vercel / BetterStack / Linear / Raycast (icon rail, top status bar, dense sparkline cards, a `⌘K` command palette). A small Node/Express server probes each live service **server-side**, measures real latency, keeps a rolling history, and serves it to a vanilla-JS SPA.
 
@@ -124,7 +124,7 @@ Agent    ──GET /mcp/manifest.json──▶  mcp.js  ──▶  4 read-only t
 ## 8. Likely interview questions and answers
 
 **Q: Give me the 30-second pitch.**
-A cross-project ops dashboard for my seven deployed projects. A Node server probes each service server-side, measures real latency, and keeps a rolling history so up/down, uptime and p95 are all measured. The SPA is vanilla ES modules with hand-drawn SVG charts on a shared design system. Its defining feature is honesty: unmeasured metrics are labelled SAMPLE, and deploy actions are a dry run that show the command and run nothing.
+A cross-project ops dashboard for six public services and one local-only desktop project. A Node server probes each service server-side, measures real latency, and keeps a rolling history so up/down, uptime and p95 are all measured. The SPA is vanilla ES modules with hand-drawn SVG charts on a shared design system. Its defining feature is honesty: unmeasured metrics are labelled SAMPLE, and deploy actions are a dry run that show the command and run nothing.
 
 **Q: Why not just use fly.io's dashboard / Grafana / an off-the-shelf tool?**
 Those don't unify a heterogeneous set — fly apps, a GitHub Pages site, a local desktop app — into one ecosystem view with the relationship graph. And building it demonstrates I understand what those tools do under the hood: probing, rolling windows, percentiles, dry-run safety.
