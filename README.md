@@ -21,7 +21,7 @@ Real health probes and latency history · clearly labelled RUM and deployment pl
 ![Express](https://img.shields.io/badge/Express-4-000000?style=for-the-badge&logo=express&logoColor=white)
 ![Vanilla JS](https://img.shields.io/badge/SPA-Vanilla_ESM-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![glass](https://img.shields.io/badge/UI-glass_OKLCH-2ED3C6?style=for-the-badge)
-![MCP](https://img.shields.io/badge/exposes-MCP-C81E33?style=for-the-badge)
+![MCP manifest](https://img.shields.io/badge/MCP_manifest-read--only-C81E33?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 </div>
@@ -32,7 +32,7 @@ Real health probes and latency history · clearly labelled RUM and deployment pl
 
 **Helm** is the cross-project **ops and observability console** for the other seven products in this portfolio. Its Node server probes public endpoints and its glass interface turns those measurements into fleet health, latency history, alerts, and a service map. Operator actions and browser RUM are visible integration surfaces, but remain dry runs or labelled samples until credentials and telemetry are connected.
 
-It is not a mockup. A small Node server **probes each live service server-side** (no browser, so no CORS), measures real latency, and keeps a rolling window so uptime, p50/p95 and the sparklines are computed from **actual measurements**. Where a metric is not instrumented yet (Core Web Vitals, error rate, cost), Helm shows a **clearly-labelled SAMPLE** placeholder with a wiring note — never a fake number dressed up as real. That honesty rule is the whole point.
+It is not a mockup. A small Node server **probes each live service server-side** (no browser, so no CORS), measures real latency, and keeps a rolling window so uptime, p50/p95 and the sparklines are computed from **actual measurements**. Where a metric is not instrumented yet (Core Web Vitals, error rate, cost), Helm shows a **clearly-labelled SAMPLE** placeholder with a wiring note — never a fake number dressed up as real. That honesty rule is the whole point. Helm currently has screenshots but no demo reel; no media is presented as current interaction proof.
 
 ### The ecosystem it watches
 
