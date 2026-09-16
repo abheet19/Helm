@@ -794,9 +794,29 @@ function answer(q) {
   if (wants(['what is helm', 'about helm', 'what does helm']) || (ql.includes('helm') && wants(['what', 'about']))) {
     return { role: 'bot', text: 'Helm is this app: a cross-project ops & observability command center over the 7-project ecosystem. It probes each live service server-side for real up/down and latency. Deploy history and browser Web Vitals are clearly labelled SAMPLE, while deploy controls are dry-run previews that execute nothing. Helm also exposes read-only fleet tools over MCP and is built on the glass design system.', src: 'registry' };
   }
-  if (wants(['how many', 'count']) && wants(['up', 'operational', 'online', 'down'])) {
-    const post = fleetPosture();
-    return { role: 'bot', text: `${post.up} of ${post.total} probed web services are currently operational. Zeno is a local desktop app and isn’t web-probed.`, src: 'live probe' };
+  // Fleet-wide status questions must not override a named project's answer.
+  // Word boundaries prevent unrelated words such as "setup" matching "up".
+  const statusIntent = /\b(down|failing|offline|up|operational|online)\b/.test(qk);
+  const countIntent = /\b(how many|count)\b/.test(qk);
+  const listIntent = /\b(which|what|who)\b/.test(qk);
+  if (!matched && statusIntent && (countIntent || listIntent)) {
+    const probed = state.fleet.filter((p) => p.status !== 'local');
+    const known = probed.filter((p) => p.status === 'up' || p.status === 'down' || p.status === 'degraded');
+    if (!known.length) {
+      return { role: 'bot', text: 'Probe results are not available yet. I cannot report which services are up or down.', src: 'live probe' };
+    }
+    const target = /\b(down|failing|offline)\b/.test(qk) ? 'down' : 'up';
+    const selected = probed.filter((p) => p.status === target);
+    const label = target === 'up' ? 'operational' : 'down';
+    const text = countIntent
+      ? `${selected.length} of ${probed.length} probed web services are ${label}.`
+      : selected.length
+        ? `Currently ${label}: ${selected.map((p) => p.name).join(', ')}.`
+        : `No probed web service is currently confirmed ${label}.`;
+    const unknown = probed.length - known.length;
+    const degraded = probed.filter((p) => p.status === 'degraded').length;
+    const caveat = `${unknown ? ` ${unknown} still awaiting probe results.` : ''}${degraded ? ` ${degraded} degraded.` : ''}`;
+    return { role: 'bot', text: text + caveat + ' Zeno is local and excluded from web probes.', src: 'live probe' };
   }
   if (wants(['which', 'what']) && ql.includes('mcp')) {
     const ex = state.fleet.filter((p) => p.mcp && p.mcp.exposes).map((p) => p.name);
